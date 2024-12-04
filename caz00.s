@@ -2,7 +2,7 @@
     d: .space 1024
     nrComenzi: .space 4
     comanda: .space 4
-    formatScanf: .asciz "%d"
+    formatScanf: .asciz "%ld"
     afisareADD: .asciz "%d: (%d, %d)\n"
     comenziParsate: .long 0
     nrComenziAdd: .space 4
@@ -13,7 +13,9 @@
     sfarsitInterval: .space 4
     pozitieZero: .space 4
     ct: .space 4
-    msjEroare: .asciz "(0, 0)\n"
+    startIntervalGET: .long 0
+    sfarsitIntervalGET: .long 0
+    afisare: .asciz "(%d, %d)\n"
 
 .text
 .global main
@@ -94,7 +96,6 @@ blocuriNecesare:
 
 rest0:
     mov %eax, dimensiuneFisier
-
     xor %ebx, %ebx
     xor %edx, %edx
     xor %ecx, %ecx
@@ -107,8 +108,10 @@ restMare:
     xor %ecx, %ecx
     jmp cautSpatiuLiber
 
-
 cautSpatiuLiber:
+    cmpl $1000, %ecx
+    jge ADD_eroare
+
     mov $0, %eax
     cmpb (%edi, %ecx), %al
     je retinemPrimulZero    
@@ -121,6 +124,7 @@ retinemPrimulZero:
     jmp ZeroDisponibil
 
 ZeroDisponibil:
+   
     xor %eax, %eax
     cmpb (%edi, %ecx) , %al
     jne verificareADD
@@ -135,11 +139,7 @@ verificareADD:
     jne adaugareInMemorie             
     jmp cautSpatiuLiber
 
-
 adaugareInMemorie:
-    cmp $1000, %ecx
-    je ADD_eroare
-    
     movl primulZero, %ecx
     mov dimensiuneFisier, %edx
     addl primulZero, %edx
@@ -159,9 +159,16 @@ adaugareInMemorieContinuare:
     jmp adaugareInMemorieContinuare
 
 ADD_eroare:
-    push msjEroare
+    movl $0, sfarsitInterval
+    movl $0, primulZero
+    jmp eroare_afisareADD
+
+eroare_afisareADD:
+    push sfarsitInterval
+    push primulZero
+    push $afisare
     call printf
-    add $4, %esp
+    add $12, %esp
     jmp ADD
 
 et_afisareADD:
@@ -172,8 +179,59 @@ et_afisareADD:
     call printf
     add $16, %esp
     jmp ADD
+
+
+
 GET:
+    push $idFisier
+    push $formatScanf
+    call scanf  
+    add $8, %esp
+    movl idFisier, %eax
+    xor %ecx, %ecx
+    xor %ebx, %ebx
+    jmp gasestePrimulID
+
+gasestePrimulID:
+    cmp $1000, %ecx
+    je eroare_GET
+    movb (%edi, %ecx),%bl   
+    cmpb %bl, %al
+    je seteazaStartInterval
+    inc %ecx
+    jmp gasestePrimulID
+
+eroare_GET:
+    movl $0, startIntervalGET
+    movl $0, sfarsitIntervalGET
+    jmp afisare_GET
+
+seteazaStartInterval:
+    movl %ecx, startIntervalGET
+    jmp parcurgereDrive
+
+parcurgereDrive:
+    xor %ebx, %ebx
+    movb (%edi, %ecx), %bl
+    cmpb %bl, %al
+    jne seteazaSfarsitInterval
+    inc %ecx
+    jmp parcurgereDrive
+
+seteazaSfarsitInterval:
+    sub $1, %ecx
+    movl %ecx, sfarsitIntervalGET
+    jmp afisare_GET
+    
+afisare_GET:
+    push sfarsitIntervalGET
+    push startIntervalGET
+    push $afisare
+    call printf
+    add $12, %esp
     jmp parsareComenzi
+    
+
 
 REMOVE:
     jmp parsareComenzi
