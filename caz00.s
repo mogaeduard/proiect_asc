@@ -16,6 +16,9 @@
     startIntervalGET: .long 0
     sfarsitIntervalGET: .long 0
     afisare: .asciz "(%d, %d)\n"
+    ID: .long 0
+    startInterval: .long 0
+    finalInterval: .long 0
 
 .text
 .global main
@@ -25,7 +28,7 @@ main:
     jmp zero
 
 zero:
-    cmp $1000, %ecx
+    cmp $1024, %ecx
     jge citireNrComenzi
     movb $0, (%edi, %ecx)
     inc %ecx
@@ -109,7 +112,7 @@ restMare:
     jmp cautSpatiuLiber
 
 cautSpatiuLiber:
-    cmpl $1000, %ecx
+    cmpl $1024, %ecx
     jge ADD_eroare
 
     mov $0, %eax
@@ -154,7 +157,7 @@ adaugareInMemorieContinuare:
     cmpl %ecx, sfarsitInterval
     je et_afisareADD
     inc %ecx
-    cmp $1000, %ecx
+    cmp $1024, %ecx
     je ADD_eroare
     jmp adaugareInMemorieContinuare
 
@@ -193,7 +196,7 @@ GET:
     jmp gasestePrimulID
 
 gasestePrimulID:
-    cmp $1000, %ecx
+    cmp $1024, %ecx
     je eroare_GET
     movb (%edi, %ecx),%bl   
     cmpb %bl, %al
@@ -230,11 +233,82 @@ afisare_GET:
     call printf
     add $12, %esp
     jmp parsareComenzi
-    
+
 
 
 REMOVE:
-    jmp parsareComenzi
+    push $idFisier
+    push $formatScanf
+    call scanf  
+    add $8, %esp
+    movl idFisier, %eax
+    xor %ecx, %ecx
+    xor %ebx, %ebx
+    jmp gasestePrimulIDRemove
+
+gasestePrimulIDRemove:
+    movb (%edi, %ecx),%bl   
+    cmpb %bl, %al
+    je IncepRemove
+    inc %ecx
+    jmp gasestePrimulIDRemove
+
+IncepRemove:
+    xor %ebx, %ebx
+    movb (%edi, %ecx), %bl
+    cmpb %bl, %al
+    jne afisareMemorieStart
+    xor %ebx, %ebx
+    movb %bl, (%edi, %ecx)
+    inc %ecx
+    jmp IncepRemove
+
+afisareMemorieStart:
+    xor %eax, %eax
+    xor %ebx, %ebx
+    xor %ecx, %ecx
+    jmp startIntervalAfisare
+
+startIntervalAfisare:
+    cmp $1024, %ecx
+    je parsareComenzi
+    mov $0, %eax
+    movb (%edi, %ecx), %al
+    cmp $0, %eax
+    jne setStartInterval
+    inc %ecx
+    jmp startIntervalAfisare
+
+setStartInterval:
+    movl %eax, ID
+    movl %ecx, startInterval 
+    jmp parcurgereInterval
+
+parcurgereInterval:
+    movb (%edi, %ecx) , %bl
+    cmpb %al, %bl
+    jne setFinInterval
+    inc %ecx
+    jmp parcurgereInterval
+
+setFinInterval:
+    dec %ecx
+    movl %ecx, finalInterval
+    jmp afisareInterval
+
+afisareInterval:
+    push %ecx
+
+    push finalInterval
+    push startInterval
+    push ID
+    push $afisareADD
+    call printf
+    add $16, %esp
+
+    pop %ecx
+    inc %ecx
+    jmp startIntervalAfisare
 
 DEFRAG:
     jmp parsareComenzi
