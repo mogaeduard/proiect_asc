@@ -1,5 +1,6 @@
 .data
     d: .space 1024
+    cp: .space 1024
     nrComenzi: .space 4
     comanda: .space 4
     formatScanf: .asciz "%ld"
@@ -60,7 +61,8 @@ parsareComenzi:
     je GET
     cmp $3, %edx
     je REMOVE
-    jmp DEFRAG
+    cmp $4, %edx
+    je DEFRAG
 
 citireNrComenziADD:
     push $nrComenziAdd
@@ -311,8 +313,56 @@ afisareInterval:
     jmp startIntervalAfisare
 
 DEFRAG:
-    jmp parsareComenzi
+    lea cp, %esi
+    xor %ecx, %ecx
+    xor %edx, %edx
+    xor %eax, %eax
+    xor %ebx, %ebx
+    jmp zeroCp
 
+zeroCp:
+    cmp $1024, %ecx
+    jge restareEcx
+    movb $0, (%esi, %ecx)
+    inc %ecx
+    jmp zeroCp
+
+restareEcx:
+    xor %ecx, %ecx
+
+DEFRAG_continuare:
+    cmp $1024,%ecx
+    jge CopiereStart
+    movb (%edi, %ecx), %al
+    cmp $0, %eax
+    jne adaugareInCp
+    inc %ecx
+    jmp DEFRAG_continuare
+
+adaugareInCp:
+    cmp $1024, %edx
+    jge CopiereStart
+    cmp $1024,%ecx
+    jge CopiereStart
+    movb %al, (%esi, %edx)
+    inc %edx
+    inc %ecx
+    jmp DEFRAG_continuare
+
+CopiereStart:
+    xor %ecx, %ecx
+    xor %edx, %edx
+    jmp CpToD
+
+CpToD:
+    cmp $1024, %ecx
+    jge afisareMemorieStart
+    xor %eax, %eax
+    movb (%esi, %edx), %al
+    movb %al, (%edi, %ecx)
+    inc %ecx
+    inc %edx
+    jmp CpToD
 et_exit:
     mov $1, %eax
     xor %ebx, %ebx
