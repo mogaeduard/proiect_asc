@@ -67,11 +67,12 @@ ADD:
     movl $0, startY
     movl $0, endX
     movl $0, endY
-    movl nrComenziAddExecutate, %ecx
-    cmpl %ecx, nrComenziAdd
+    movl nrComenziAddExecutate, %ebx
+    cmpl %ebx, nrComenziAdd
     je parsareComenzi
-    inc %ecx
-    movl %ecx, nrComenziAddExecutate
+    inc %ebx
+    movl %ebx, nrComenziAddExecutate
+
     push $idFisier
     push $formatScanf
     call scanf
@@ -91,21 +92,16 @@ blocuriNecesare:
     cmp $0, %edx
     je rest0
     add $1, %eax
+
 rest0:
     mov %eax, dimensiuneFisier
     xor %ebx, %ebx
     xor %edx, %edx
-    
     jmp cautSpatiuLiber
 
 cautSpatiuLiber:
     cmpl $1048576, %ecx
     jge ADD_eroare
-    movl %ecx, pozitieCurenta
-    movl pozitieCurenta, %eax
-    xor %edx, %edx
-    divl dimensiuneLinie
-    movl %eax, linieCurenta
     xor %eax, %eax
     movb (%edi, %ecx), %al
     cmpb $0, %al
@@ -114,9 +110,14 @@ cautSpatiuLiber:
     jmp cautSpatiuLiber
 
 retinemPrimulZero:
+    cmpl $1048576, %ecx
+    jge ADD_eroare
+    mov %ecx, %eax
+    xor %edx, %edx
+    divl dimensiuneLinie
+    movl %eax, linieCurenta
+    xor %eax, %eax
     movl %ecx, startX
-    movl linieCurenta, %ecx
-    movl startX, %ecx
     inc %ecx
     jmp ZeroDisponibil
 
@@ -144,15 +145,19 @@ verificareLinie:
     movl endX, %eax
     xor %edx, %edx
     divl dimensiuneLinie
-    movl %eax, endY
     cmpl linieCurenta, %eax
     je adaugareInMemorie
+    movl linieCurenta, %eax
+    inc %eax
+    movl %eax, linieCurenta
     mull dimensiuneLinie
     mov %eax, %ecx
     jmp cautSpatiuLiber
 
 
+
 adaugareInMemorie:
+    movl %eax, endY
     movl startX, %ecx
     movl dimensiuneFisier, %edx
     addl startX, %edx
@@ -163,8 +168,7 @@ adaugareInMemorie:
     jmp adaugareInMemorieContinuare
 
 adaugareInMemorieContinuare:
-    cmpl $1048576, %ecx
-    je ADD_eroare
+    
     movb %al, (%edi,%ecx)
     cmpl endX,%ecx
     je et_afisareADD
@@ -194,7 +198,6 @@ et_afisareADD:
     movl startX, %eax
     divl dimensiuneLinie
     movl %eax, startY
-    movl %eax, endY
     movl %edx, startX
     xor %edx, %edx
     movl endX, %eax
@@ -211,8 +214,7 @@ et_afisareADD:
     push $afisareADD
     call printf
     add $20, %esp
-    movl endX, %ecx
-    inc %ecx
+    xor %ecx, %ecx
     jmp ADD
 
 et_exit:
