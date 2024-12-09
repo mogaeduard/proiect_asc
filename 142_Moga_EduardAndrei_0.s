@@ -69,6 +69,9 @@ citireNrComenziADD:
     push $formatScanf
     call scanf
     add $8, %esp
+    movl nrComenziAddExecutate, %ecx
+    xor %ecx, %ecx
+    movl %ecx, nrComenziAddExecutate
     jmp ADD  
 
 ADD:
@@ -174,6 +177,9 @@ eroare_afisareADD:
     push $afisare
     call printf
     add $12, %esp
+    push $0
+    call fflush
+    pop %ebx
     jmp ADD
 
 et_afisareADD:
@@ -183,6 +189,9 @@ et_afisareADD:
     push $afisareADD
     call printf
     add $16, %esp
+    push $0
+    call fflush
+    pop %ebx
     jmp ADD
 
 
@@ -234,6 +243,9 @@ afisare_GET:
     push $afisare
     call printf
     add $12, %esp
+    push $0
+    call fflush
+    pop %ebx
     jmp parsareComenzi
 
 
@@ -307,6 +319,9 @@ afisareInterval:
     push $afisareADD
     call printf
     add $16, %esp
+    push $0
+    call fflush
+    pop %ebx
 
     pop %ecx
     inc %ecx
@@ -364,6 +379,10 @@ CpToD:
     inc %edx
     jmp CpToD
 et_exit:
+    push $0
+    call fflush
+    pop %ebx
     mov $1, %eax
     xor %ebx, %ebx
     int $0x80
+    
