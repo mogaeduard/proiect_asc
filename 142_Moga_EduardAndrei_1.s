@@ -12,6 +12,7 @@
     startY: .long 0
     endX: .long 0
     endY: .long 0
+    sfarsitInterval: .long 0
     linieCurenta: .long 0
     dimensiuneLinie: .long 1024
     pozitieCurenta: .long 0
@@ -60,6 +61,9 @@ citireNrComenziADD:
     push $formatScanf
     call scanf
     add $8, %esp
+    movl nrComenziAddExecutate, %ecx
+    xor %ecx, %ecx
+    movl %ecx, nrComenziAddExecutate
     jmp ADD
 
 ADD:
@@ -94,83 +98,91 @@ blocuriNecesare:
     add $1, %eax
 
 rest0:
-    mov %eax, dimensiuneFisier
+    movl %eax, dimensiuneFisier
     xor %ebx, %ebx
     xor %edx, %edx
     jmp cautSpatiuLiber
 
+incrementareEcx:
+    inc %ecx
+    jmp cautSpatiuLiber
+
 cautSpatiuLiber:
     cmpl $1048576, %ecx
+    movl $0, startX
+    movl $0, endX
     jge ADD_eroare
-    xor %eax, %eax
-    movb (%edi, %ecx), %al
-    cmpb $0, %al
+    movl $0, %eax
+    cmpb (%edi, %ecx), %al
     je retinemPrimulZero
     inc %ecx
     jmp cautSpatiuLiber
 
 retinemPrimulZero:
-    cmpl $1048576, %ecx
-    jge ADD_eroare
+
     mov %ecx, %eax
     xor %edx, %edx
     divl dimensiuneLinie
-    movl %eax, linieCurenta
-    xor %eax, %eax
+    movl %eax, startY
+    movl $0, %eax
     movl %ecx, startX
     inc %ecx
     jmp ZeroDisponibil
 
 ZeroDisponibil:
-    xor %eax, %eax
-    cmpl $1048576, %ecx
-    jge ADD_eroare
-    movb (%edi, %ecx), %al
-    cmpb $0, %al
-    je verificareADD
+    movl $0, %eax
+    cmpb (%edi, %ecx), %al
+    
+    jne verificareADD
     inc %ecx
     jmp ZeroDisponibil
 
 verificareADD:
+    xor %ebx, %ebx
     movl %ecx, %ebx
-    sub startX, %ebx
-    inc %ebx
+    subl startX, %ebx
     cmpl dimensiuneFisier, %ebx
-    movl %ecx, endX
-    je verificareLinie
-    inc %ecx
-    jmp ZeroDisponibil
+    jge calculareFinalInterval
+    jmp incrementareEcx
+
+calculareFinalInterval:
+    xor %ebx, %ebx
+    movl dimensiuneFisier, %edx
+    addl startX, %edx
+    dec %edx
+    movl %edx, sfarsitInterval
+    xor %edx, %edx
+    cmpl $1048576, %edx
+    jge ADD_eroare
+    jmp verificareLinie
 
 verificareLinie:
-    movl endX, %eax
+    movl sfarsitInterval, %eax
     xor %edx, %edx
     divl dimensiuneLinie
+    movl %edx, endX
     cmpl linieCurenta, %eax
     je adaugareInMemorie
-    movl linieCurenta, %eax
-    inc %eax
     movl %eax, linieCurenta
     mull dimensiuneLinie
     mov %eax, %ecx
+    xor %edx, %edx
     jmp cautSpatiuLiber
 
-
-
 adaugareInMemorie:
-    movl %eax, endY
     movl startX, %ecx
-    movl dimensiuneFisier, %edx
-    addl startX, %edx
-    sub $1, %edx
-    movl %edx, endX
-    xor %edx, %edx
     mov idFisier, %eax
+    movl endX, %edx
+    cmpl $1024, %edx
+    jge ADD_eroare
+    xor %edx, %edx
     jmp adaugareInMemorieContinuare
 
 adaugareInMemorieContinuare:
-    
+    cmpl $1048576, %ecx
+    je ADD_eroare
     movb %al, (%edi,%ecx)
-    cmpl endX,%ecx
+    cmpl sfarsitInterval,%ecx
     je et_afisareADD
     inc %ecx
     jmp adaugareInMemorieContinuare
@@ -183,7 +195,7 @@ ADD_eroare:
     jmp eroare_afisareADD
 
 eroare_afisareADD:
-    push endY
+    push startY
     push endX
     push startY
     push startX
@@ -191,6 +203,7 @@ eroare_afisareADD:
     push $afisareADD
     call printf
     add $20, %esp
+
     jmp ADD
 
 et_afisareADD:
@@ -200,11 +213,12 @@ et_afisareADD:
     movl %eax, startY
     movl %edx, startX
     xor %edx, %edx
-    movl endX, %eax
+    movl sfarsitInterval, %eax
     divl dimensiuneLinie
     movl %edx, endX
+    movl %eax, endY
     xor %edx, %edx
-    xor %eax, %eax
+    movl $0, %eax
 
     push endX
     push endY
@@ -214,6 +228,8 @@ et_afisareADD:
     push $afisareADD
     call printf
     add $20, %esp
+
+
     xor %ecx, %ecx
     jmp ADD
 
