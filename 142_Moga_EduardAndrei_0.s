@@ -11,15 +11,17 @@
     idFisier: .space 4
     dimensiuneFisier: .space 4
     primulZero: .space 4
-    sfarsitInterval: .space 4
+    sfarsitInterval: .long 0
     pozitieZero: .space 4
     ct: .space 4
     startIntervalGET: .long 0
     sfarsitIntervalGET: .long 0
     afisare: .asciz "(%d, %d)\n"
+    formatPrintf: .asciz "%d\n"
     ID: .long 0
     startInterval: .long 0
     finalInterval: .long 0
+
 
 .text
 .global main
@@ -89,7 +91,8 @@ ADD:
     push $formatScanf
     call scanf
     add $8, %esp
-
+    movl $0, sfarsitInterval
+    movl $0, primulZero
     jmp blocuriNecesare
     
 blocuriNecesare:
@@ -103,23 +106,29 @@ blocuriNecesare:
     jg restMare
 
 rest0:
-    mov %eax, dimensiuneFisier
+    movl %eax, dimensiuneFisier
     xor %ebx, %ebx
     xor %edx, %edx
     xor %ecx, %ecx
     jmp cautSpatiuLiber
 restMare:
     add $1, %eax
-    mov %eax, dimensiuneFisier
+    movl %eax, dimensiuneFisier
     xor %ebx, %ebx
     xor %edx, %edx
     xor %ecx, %ecx
+
+    jmp cautSpatiuLiber
+
+incrementareEcx:
+    inc %ecx
     jmp cautSpatiuLiber
 
 cautSpatiuLiber:
     cmpl $1024, %ecx
     jge ADD_eroare
-
+    movl $0, sfarsitInterval
+    movl $0, primulZero
     mov $0, %eax
     cmpb (%edi, %ecx), %al
     je retinemPrimulZero    
@@ -128,42 +137,47 @@ cautSpatiuLiber:
 
 retinemPrimulZero:
     movl %ecx, primulZero 
+    
     inc %ecx
     jmp ZeroDisponibil
 
 ZeroDisponibil:
    
-    xor %eax, %eax
-    cmpb (%edi, %ecx) , %al
+    movl $0, %eax
+    cmpb %al, (%edi, %ecx)
     jne verificareADD
-    movl %ecx, ct
+    
     inc %ecx
     jmp ZeroDisponibil
    
 verificareADD:
-    movl ct, %ebx
-    sub primulZero, %ebx
+    xor %ebx, %ebx
+    movl %ecx, %ebx
+    subl primulZero, %ebx
     cmpl dimensiuneFisier, %ebx
-    jne adaugareInMemorie             
-    jmp cautSpatiuLiber
+    jge adaugareInMemorie           
+    jmp incrementareEcx
 
 adaugareInMemorie:
     movl primulZero, %ecx
     mov dimensiuneFisier, %edx
     addl primulZero, %edx
-    sub $1, %edx
+    dec %edx
     movl %edx, sfarsitInterval
+    cmpl $1024, %edx
+    jge ADD_eroare
     xor %edx, %edx
     mov idFisier, %eax
+ 
     jmp adaugareInMemorieContinuare
 
 adaugareInMemorieContinuare:
+    cmpl $1024, %ecx
+    je ADD_eroare
     movb %al, (%edi,%ecx)
     cmpl %ecx, sfarsitInterval
     je et_afisareADD
     inc %ecx
-    cmp $1024, %ecx
-    je ADD_eroare
     jmp adaugareInMemorieContinuare
 
 ADD_eroare:
@@ -177,9 +191,6 @@ eroare_afisareADD:
     push $afisare
     call printf
     add $12, %esp
-    push $0
-    call fflush
-    pop %ebx
     jmp ADD
 
 et_afisareADD:
@@ -189,9 +200,6 @@ et_afisareADD:
     push $afisareADD
     call printf
     add $16, %esp
-    push $0
-    call fflush
-    pop %ebx
     jmp ADD
 
 
@@ -243,9 +251,7 @@ afisare_GET:
     push $afisare
     call printf
     add $12, %esp
-    push $0
-    call fflush
-    pop %ebx
+
     jmp parsareComenzi
 
 
@@ -319,9 +325,6 @@ afisareInterval:
     push $afisareADD
     call printf
     add $16, %esp
-    push $0
-    call fflush
-    pop %ebx
 
     pop %ecx
     inc %ecx
@@ -378,10 +381,8 @@ CpToD:
     inc %ecx
     inc %edx
     jmp CpToD
+    
 et_exit:
-    push $0
-    call fflush
-    pop %ebx
     mov $1, %eax
     xor %ebx, %ebx
     int $0x80
