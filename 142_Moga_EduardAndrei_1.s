@@ -16,7 +16,14 @@
     linieCurenta: .long 0
     dimensiuneLinie: .long 1024
     pozitieCurenta: .long 0
+    startIntervalGET: .long 0
+    sfarsitIntervalGET: .long 0
+    afisare: .asciz "((%d, %d), (%d, %d))\n"
     afisareADD: .asciz "%d: ((%d, %d), (%d, %d))\n"
+    startIntervalAfisare: .long 0
+    sfarsitIntervalAfisare: .long 0
+    finalInterval: .long 0
+    ID: .long 0
 
 .text
 .global main
@@ -55,6 +62,12 @@ parsareComenzi:
     movl comanda, %edx
     cmp $1, %edx
     je citireNrComenziADD
+    cmp $2, %edx
+    je GET
+    cmp $3, %edx
+    je REMOVE
+    cmp $4, %edx
+    je DEFRAG
 
 citireNrComenziADD:
     push $nrComenziAdd
@@ -202,7 +215,7 @@ eroare_afisareADD:
     push idFisier
     push $afisareADD
     call printf
-    add $20, %esp
+    add $24, %esp
 
     jmp ADD
 
@@ -227,11 +240,194 @@ et_afisareADD:
     push idFisier
     push $afisareADD
     call printf
-    add $20, %esp
-
+    add $24, %esp
 
     xor %ecx, %ecx
     jmp ADD
+
+GET:
+    movl $0, startX
+    movl $0, startY
+    movl $0, endX
+    movl $0, endY
+    xor %eax, %eax
+    xor %ebx, %ebx
+    xor %ecx, %ecx
+    xor %edx, %edx
+    push $idFisier
+    push $formatScanf
+    call scanf  
+    add $8, %esp
+    movl idFisier, %eax
+    xor %ecx, %ecx
+    xor %ebx, %ebx
+    jmp gasestePrimulID
+
+gasestePrimulID:
+    cmp $1048576, %ecx
+    je eroare_GET
+    movb (%edi, %ecx),%bl   
+    cmpb %bl, %al
+    je seteazaStartInterval
+    inc %ecx
+    jmp gasestePrimulID
+
+eroare_GET:
+    movl $0, startX
+    movl $0, startY
+    movl $0, endX
+    movl $0, endY
+    push endX
+    push endY
+    push startX
+    push startY
+    push $afisare
+    call printf
+    add $20, %esp
+    xor %ecx, %ecx
+    jmp parsareComenzi
+    jmp afisare_GET
+
+seteazaStartInterval:
+    movl %ecx, startIntervalGET
+    jmp parcurgereDrive
+    parcurgereDrive:
+    xor %ebx, %ebx
+    movb (%edi, %ecx), %bl
+    cmpb %bl, %al
+    jne seteazaSfarsitInterval
+    inc %ecx
+    jmp parcurgereDrive
+
+seteazaSfarsitInterval:
+    sub $1, %ecx
+    movl %ecx, sfarsitIntervalGET
+    jmp afisare_GET
+    
+afisare_GET:
+    xor %edx, %edx
+    movl startIntervalGET, %eax
+    divl dimensiuneLinie
+    movl %eax, startY
+    movl %edx, startX
+    xor %edx, %edx
+    movl sfarsitIntervalGET, %eax
+    divl dimensiuneLinie
+    movl %edx, endX
+    movl %eax, endY
+    xor %edx, %edx
+    movl $0, %eax
+
+
+    push endX
+    push endY
+    push startX
+    push startY
+    push $afisare
+    call printf
+    add $20, %esp
+    xor %ecx, %ecx
+    jmp parsareComenzi
+
+
+
+REMOVE:
+    movl $0, startX
+    movl $0, startY
+    movl $0, endX
+    movl $0, endY
+    push $idFisier
+    push $formatScanf
+    call scanf  
+    add $8, %esp
+    movl idFisier, %eax
+    xor %ecx, %ecx
+    xor %ebx, %ebx
+    jmp gasestePrimulIDRemove
+
+gasestePrimulIDRemove:
+    movb (%edi, %ecx),%bl   
+    cmpb %bl, %al
+    je IncepRemove
+    inc %ecx
+    jmp gasestePrimulIDRemove
+
+IncepRemove:
+    xor %ebx, %ebx
+    movb (%edi, %ecx), %bl
+    cmpb %bl, %al
+    jne afisareMemorieStart
+    xor %ebx, %ebx
+    movb %bl, (%edi, %ecx)
+    inc %ecx
+    jmp IncepRemove
+
+afisareMemorieStart:
+    xor %eax, %eax
+    xor %ebx, %ebx
+    xor %ecx, %ecx
+    jmp et_startIntervalAfisare
+
+et_startIntervalAfisare:
+    cmp $1048576, %ecx
+    je parsareComenzi
+    mov $0, %eax
+    movb (%edi, %ecx), %al
+    cmp $0, %eax
+    jne setStartInterval
+    inc %ecx
+    jmp et_startIntervalAfisare
+
+setStartInterval:
+    movl %eax, ID
+    movl %ecx, startIntervalAfisare 
+    jmp parcurgereInterval
+
+parcurgereInterval:
+    movb (%edi, %ecx) , %bl
+    cmpb %al, %bl
+    jne setFinInterval
+    inc %ecx
+    jmp parcurgereInterval
+
+setFinInterval:
+    dec %ecx
+    movl %ecx, finalInterval
+    jmp afisareInterval
+
+afisareInterval:
+    xor %edx, %edx
+    movl startIntervalAfisare, %eax
+    divl dimensiuneLinie
+    movl %eax, startY
+    movl %edx, startX
+    xor %edx, %edx
+    movl finalInterval, %eax
+    divl dimensiuneLinie
+    movl %edx, endX
+    movl %eax, endY
+    xor %edx, %edx
+    movl $0, %eax
+
+    push %ecx
+
+    push endX
+    push endY
+    push startX
+    push startY
+    push ID
+    push $afisareADD
+    call printf
+    add $24, %esp
+
+    xor %ecx, %ecx
+
+    pop %ecx
+    inc %ecx
+    jmp et_startIntervalAfisare
+
+DEFRAG:
+    jmp parsareComenzi
 
 et_exit:
     mov $1, %eax
