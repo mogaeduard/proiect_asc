@@ -428,6 +428,9 @@ afisareInterval:
 
 DEFRAG:
     jmp parsareComenzi
+    # 2 variante
+    # 1. iti iei un vector care retine {id1, dimensiune1, id2, dimensiune2, ...} si il bagi in alta matrice, apoi copiezi matricea auxiliara in aia principala
+    # 2. parcurgi matricea element cu element si cand gasesti cv diferit retii dimensiunea si il bagi ca in add in matricea auxiliara (important atunci cand bagi un nou fisier este ca ecx sa fie ultima poz+1, nu 0)
 
 et_exit:
     mov $1, %eax
