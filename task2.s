@@ -1,17 +1,23 @@
 .data
     d: .space 1048576
+    v: .space 1048576
+    dimensiune: .long 0
     nrComenzi: .space 4
     comanda: .space 4
+    primaAparitieID: .long 0
+    ultimaAparitieID: .long 0
     formatScanf: .asciz "%ld"
     comenziParsate: .long 0
     nrComenziAdd: .space 4
     nrComenziAddExecutate: .long 0
     idFisier: .space 4
+    IdCurent: .long 0
     dimensiuneFisier: .space 4
     startX: .long 0
     startY: .long 0
     endX: .long 0
     endY: .long 0
+    ultimulEdx: .long 0
     sfarsitInterval: .long 0
     linieCurenta: .long 0
     dimensiuneLinie: .long 1024
@@ -24,14 +30,17 @@
     sfarsitIntervalAfisare: .long 0
     finalInterval: .long 0
     ID: .long 0
+    nrBlocuriID: .long 0
 
 .text
 .global main
 
 main:
+    lea v, %esi
     lea d, %edi
     xor %ecx, %ecx
     jmp initMat
+
 
 initMat:
     cmp $1048576, %ecx
@@ -114,8 +123,10 @@ rest0:
     movl %eax, dimensiuneFisier
     xor %ebx, %ebx
     xor %edx, %edx
+    xor %ecx, %ecx
+    xor %eax, %eax
     jmp cautSpatiuLiber
-
+ 
 incrementareEcx:
     inc %ecx
     jmp cautSpatiuLiber
@@ -291,7 +302,8 @@ eroare_GET:
 seteazaStartInterval:
     movl %ecx, startIntervalGET
     jmp parcurgereDrive
-    parcurgereDrive:
+
+parcurgereDrive:
     xor %ebx, %ebx
     movb (%edi, %ecx), %bl
     cmpb %bl, %al
@@ -427,12 +439,223 @@ afisareInterval:
     jmp et_startIntervalAfisare
 
 DEFRAG:
-    jmp parsareComenzi
-    # 2 variante
-    # 1. iti iei un vector care retine {id1, dimensiune1, id2, dimensiune2, ...} si il bagi in alta matrice, apoi copiezi matricea auxiliara in aia principala
-    # 2. parcurgi matricea element cu element si cand gasesti cv diferit retii dimensiunea si il bagi ca in add in matricea auxiliara (important atunci cand bagi un nou fisier este ca ecx sa fie ultima poz+1, nu 0)
+    lea v, %esi
+    xor %ecx, %ecx
+    xor %eax, %eax
+    xor %ebx, %ebx
+    xor %edx, %edx
+    jmp zeroV
+ 
+zeroV:
+    cmp $1048576, %ecx
+    jge resetEcx
+    movb $0, (%esi, %ecx)
+    inc %ecx
+    jmp zeroV
 
-et_exit:
+resetEcx:
+    xor %ecx, %ecx
+    movl %ecx, ID
+    xor %ebx, %ebx
+    xor %eax, %eax
+    jmp cautareInMat
+
+cautareInMat:
+    cmp $1048576, %edx
+    jge continuareDefrag
+    xor %eax, %eax
+    movb (%edi, %edx),%al
+    cmpb $0, %al
+    jne retinemPrimaAparitieSiID
+    inc %edx
+    jmp cautareInMat
+
+retinemPrimaAparitieSiID:
+    movl %edx, primaAparitieID
+    movl %eax, ID
+    jmp cautareIdDiferit
+
+cautareIdDiferit:
+    xor %ebx, %ebx
+    movb (%edi, %edx), %bl
+    movl %ebx, IdCurent
+    xor %ebx, %ebx
+    xor %eax, %eax
+    movl ID, %eax
+    cmpl IdCurent, %eax
+    jne retinemNumarDeBlocuri
+    inc %edx
+    jmp cautareIdDiferit
+
+retinemNumarDeBlocuri:
+    movl %edx, ultimaAparitieID
+    subl primaAparitieID, %edx
+    
+    movl %edx, nrBlocuriID
+    movl ultimaAparitieID, %edx
+    jmp adaugareInVector
+
+adaugareInVector:
+    movl ID, %eax
+    movl %eax, (%esi, %ecx)
+    addl $4, %ecx
+    movl nrBlocuriID, %ebx
+    movl %ebx, (%esi, %ecx)
+    add $4, %ecx
+    inc %edx
+    xor %eax, %eax
+    xor %ebx, %ebx
+    jmp cautareInMat
+
+continuareDefrag:
+    xor %ecx, %ecx
+    xor %edx, %edx
+    xor %eax, %eax
+    xor %ebx, %ebx
+    jmp resetareD
+
+resetareD:
+    cmp $1048576, %ecx
+    jge resetEcx1
+    movb $0, (%edi, %ecx)
+    inc %ecx
+    jmp resetareD
+
+resetEcx1:
+    xor %ecx, %ecx
+    jmp ADDD
+
+ADDD:
+    movl $0, startX
+    movl $0, startY
+    movl $0, endX
+    movl $0, endY
+    movl ultimulEdx, %edx
+    cmp $1048576, %edx
+    jge afisareMemorieStart
+    xor %eax, %eax
+    movl (%esi, %edx), %eax
+    movl %eax, idFisier
+    addl $4, %edx
+    xor %eax, %eax
+    movl (%esi, %edx), %eax
+    movl %eax, dimensiuneFisier
+    addl $4, %ecx
+    movl %edx, ultimulEdx
+    cmpl $0, %eax
+    jne abc
+    jmp ADDD
+
+abc:
+    xor %eax, %eax
+    xor %edx, %edx
+    movl endX, %ecx
+    jmp cautSpatiuLiberD
+
+ 
+incrementareEcxD:
+    inc %ecx
+    jmp cautSpatiuLiberD
+
+cautSpatiuLiberD:
+    cmpl $1048576, %ecx
+    movl $0, startX
+    movl $0, endX
+    jge ADD_eroareD
+    movl $0, %eax
+    cmpb (%edi, %ecx), %al
+    je retinemPrimulZeroD
+    inc %ecx
+    jmp cautSpatiuLiberD
+
+retinemPrimulZeroD:
+
+    mov %ecx, %eax
+    xor %edx, %edx
+    divl dimensiuneLinie
+    movl %eax, startY
+    movl $0, %eax
+    movl %ecx, startX
+    inc %ecx
+    jmp ZeroDisponibilD
+
+ZeroDisponibilD:
+    movl $0, %eax
+    cmpb (%edi, %ecx), %al
+    
+    jne verificareADDD
+    inc %ecx
+    jmp ZeroDisponibilD
+
+verificareADDD:
+    xor %ebx, %ebx
+    movl %ecx, %ebx
+    subl startX, %ebx
+    cmpl dimensiuneFisier, %ebx
+    jge calculareFinalIntervalD
+    jmp incrementareEcxD
+
+calculareFinalIntervalD:
+    xor %ebx, %ebx
+    movl dimensiuneFisier, %edx
+    addl startX, %edx
+    dec %edx
+    movl %edx, sfarsitInterval
+    xor %edx, %edx
+    cmpl $1048576, %edx
+    jge ADD_eroareD
+    jmp verificareLinieD
+
+verificareLinieD:
+    movl sfarsitInterval, %eax
+    xor %edx, %edx
+    divl dimensiuneLinie
+    movl %edx, endX
+    cmpl linieCurenta, %eax
+    je adaugareInMemorieD
+    movl %eax, linieCurenta
+    mull dimensiuneLinie
+    mov %eax, %ecx
+    xor %edx, %edx
+    jmp cautSpatiuLiberD
+
+adaugareInMemorieD:
+    movl startX, %ecx
+    mov idFisier, %eax
+    movl endX, %edx
+    cmpl $1024, %edx
+    jge ADD_eroareD
+    xor %edx, %edx
+    jmp adaugareInMemorieContinuareD
+
+adaugareInMemorieContinuareD:
+    cmpl $1048576, %ecx
+    je ADD_eroareD
+    movb %al, (%edi,%ecx)
+    cmpl sfarsitInterval,%ecx
+    je et_afisareADDD
+    inc %ecx
+    jmp adaugareInMemorieContinuareD
+
+ADD_eroareD:
+    jmp ADDD
+
+et_afisareADDD:
+    jmp ADDD
+
+et_exit:   
+    push $0
+    call fflush
+    popl %eax
     mov $1, %eax
     xor %ebx, %ebx
     int $0x80
+
+
+   # 2 variante:
+    # 1. iti iei un vector care retine {id1, dimensiune1, id2, dimensiune2, ...} 
+    #si il bagi in alta matrice, apoi copiezi matricea auxiliara in aia principala
+
+    # 2. parcurgi matricea element cu element si cand gasesti cv diferit 
+    #retii dimensiunea si il bagi ca in add in matricea auxiliara 
+   #(important atunci cand bagi un nou fisier este ca ecx sa fie ultima poz+1, nu 0)
